@@ -29,25 +29,43 @@ tm* setDmy(){
   return localtime(&time_cast);
 }
 
-void newPage(vector<string> jpage, tm* today){
+string dayformarter(int* dmy){
+  string dfs; //day formated string
+  dfs = (dmy[0]<10) ? "0"+to_string(dmy[0])+"/" : to_string(dmy[0])+"/";
+  dfs = (dmy[1]<10) ? dfs+"0"+to_string(dmy[1])+"/" : dfs+to_string(dmy[1])+"/";
+  dfs = dfs+to_string(dmy[2]);
   
-  //string conc_day_page;
-  string current = jpage.back();
-  current[6]='\0';
-  string new_page;
-  char dmyf[6];
-  int i=0;
-  for(auto ipages: current){
-    if(ipages==' '){
-     // ipages='\0';
-      break;
+  return dfs;
+}
+
+void newPage(vector<string> jpage, tm* today){
+
+  string copy, current = jpage.back();
+  copy = current[1]; //getting the day
+  int nday[3]={ atoi(copy.c_str()), today->tm_mday};
+  nday[2]=nday[1]-nday[0]; //getting missing days
+  
+  // 7/2/24 - 6224 = 5days
+  /*1- if the day matches, pass
+  * 2- if doesn't match for 1 day longer, pass 
+  * 3- if doesnt't match for 2 days or longer, NO 
+  */
+  int daynow[3] = {0, today->tm_mon+1, today->tm_year-100}; 
+  
+  if(nday[2] > 1){
+    nday[2] = jpage.size();
+    while(nday[0]++<nday[1]){ //check for missing days 
+      nday[2]++;
+      daynow[0]=nday[0]; //increasing day counter
+      current  = dayformarter(daynow); //Converting to dd/mm/yy formart
+      copy = current+" - page"+to_string(nday[2]); //formarting again before push
+      jpage.push_back(copy); //pushing back to collection
+      printf("DATE: %s\n", copy.c_str());
     }
-    dmyf[i] = ipages;
-    i++;
-    //conc_day_page = conc_day_page+ipages;
-  } /* DOESNT WORK, DATA FORMART IS MESSIG UP!!! &*/ //FIX I
-  int rec = atoi(current.c_str());
-  printf("%s and %s and %d\n", dmyf, current.c_str(), rec);
+  }
+ 
+  
+  //printf("%s and %d\n", current.c_str(), rec);
   //printf("DAY: %d/%d/%d\n", today->tm_mday, today->tm_mon+1, today->tm_year+1900);
   
 }
@@ -120,7 +138,10 @@ int main(){
     }
  
     newPage(jpages, day);
-    
+    //string dd = "7224";
+    int dt[3] = {day->tm_mday, day->tm_mon+1, day->tm_year-100};
+      cout << dayformarter(dt) << "\n";
+  
   }
   else{
     status="Write your first note";
