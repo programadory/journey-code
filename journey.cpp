@@ -38,36 +38,39 @@ string dayformarter(int* dmy){
   return dfs;
 }
 
-void newPage(vector<string> jpage, tm* today){
+void newPage(vector<string>* jpage, tm* today){
 
-  string copy, current = jpage.back();
-  copy = current[1]; //getting the day
-  int nday[3]={ atoi(copy.c_str()), today->tm_mday};
-  nday[2]=nday[1]-nday[0]; //getting missing days
+  string stream = jpage->back();
+  stream[2] = '\0'; //Delimite a new finish to be treated for stoi()
+  int cmpday[3]={ today->tm_mday, stoi(stream) };
+  cmpday[2]=cmpday[0]-cmpday[1]; //getting missing days
+  cout << cmpday[1] << " - day\n";
+  int daynow[3] = {today->tm_mday, today->tm_mon+1, today->tm_year-100};
+  int dayc=jpage->size();
   
-  // 7/2/24 - 6224 = 5days
   /*1- if the day matches, pass
   * 2- if doesn't match for 1 day longer, pass 
   * 3- if doesnt't match for 2 days or longer, NO 
   */
-  int daynow[3] = {0, today->tm_mon+1, today->tm_year-100}; 
-  
-  if(nday[2] > 1){
-    nday[2] = jpage.size();
-    while(nday[0]++<nday[1]){ //check for missing days 
-      nday[2]++;
-      daynow[0]=nday[0]; //increasing day counter
-      current  = dayformarter(daynow); //Converting to dd/mm/yy formart
-      copy = current+" - page"+to_string(nday[2]); //formarting again before push
-      jpage.push_back(copy); //pushing back to collection
-      printf("DATE: %s\n", copy.c_str());
+  //When theres days missing out
+  if(cmpday[2] > 1){
+    //check for missing days 
+    while(++cmpday[1]<=cmpday[0]){
+      daynow[0]=cmpday[1]; //increasing days
+      stream  = dayformarter(daynow); //Converting to dd/mm/yy formart
+      stream = stream+" - page"+to_string(++dayc); //formarting again before push
+      jpage->push_back(stream); //pushing back to collection
+      printf("DATE: %s\n", stream.c_str());
     }
+  }//when its a new journey day
+  else{ //Saving memory func call
+    stream  = dayformarter(daynow);
+    stream = stream+" - page"+to_string(++dayc); 
+    jpage->push_back(stream);
+    printf("DATE: %s\n", stream.c_str());
   }
+ //ALGORITHM IS WORKING FINE!
  
-  
-  //printf("%s and %d\n", current.c_str(), rec);
-  //printf("DAY: %d/%d/%d\n", today->tm_mday, today->tm_mon+1, today->tm_year+1900);
-  
 }
 
 int main(){
@@ -79,8 +82,8 @@ int main(){
     3- if those aren't yet, set the config file (journeyquery);
     4- Read file, copy files to vector<string> then if there's pages, fill all the empty range 
     of note-days within empty pages starting from last note registered.
-    
   */
+  
   const char* PATH = "journeypath";
   const char* FILE = "journeypath/journeyquery";
   fstream jfile;
@@ -137,7 +140,7 @@ int main(){
       jpages.push_back(line);
     }
  
-    newPage(jpages, day);
+    newPage(&jpages, day);
     //string dd = "7224";
     int dt[3] = {day->tm_mday, day->tm_mon+1, day->tm_year-100};
       cout << dayformarter(dt) << "\n";
