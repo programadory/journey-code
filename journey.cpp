@@ -7,7 +7,6 @@
 #include <chrono>
 #include "/data/data/com.termux/files/home/headers/termux.h"
 #include "/data/data/com.termux/files/home/headers/colors.h"
-#define WAIT wait_click();
 
 using namespace std;
 
@@ -44,9 +43,12 @@ void newPage(vector<string>* jpage, tm* today){
   stream[2] = '\0'; //Delimite a new finish to be treated for stoi()
   int cmpday[3]={ today->tm_mday, stoi(stream) };
   cmpday[2]=cmpday[0]-cmpday[1]; //getting missing days
-  cout << cmpday[1] << " - day\n";
+  LOGQ(stream);
+  LOGQ(to_string(cmpday[1]));
+  
   int daynow[3] = {today->tm_mday, today->tm_mon+1, today->tm_year-100};
   int dayc=jpage->size();
+  LOGQ(to_string(dayc));
   
   /*1- if the day matches, pass
   * 2- if doesn't match for 1 day longer, pass 
@@ -60,18 +62,23 @@ void newPage(vector<string>* jpage, tm* today){
       stream  = dayformarter(daynow); //Converting to dd/mm/yy formart
       stream = stream+" - page"+to_string(++dayc); //formarting again before push
       jpage->push_back(stream); //pushing back to collection
-      printf("DATE: %s\n", stream.c_str());
+      //printf("DATE: %s\n", stream.c_str());
+      LOGQ(stream);
     }
   }//when its a new journey day
   else{ //Saving memory func call
     stream  = dayformarter(daynow);
     stream = stream+" - page"+to_string(++dayc); 
     jpage->push_back(stream);
-    printf("DATE: %s\n", stream.c_str());
+    LOGQ(stream);
+    //printf("DATE: %s\n", stream.c_str());
   }
  //ALGORITHM IS WORKING FINE!
- 
+ exitlogQ();
 }
+
+void cliOpen(string, Colors);
+void cliClose(string, wchar_t*);
 
 int main(){
   
@@ -86,11 +93,11 @@ int main(){
   
   const char* PATH = "journeypath";
   const char* FILE = "journeypath/journeyquery";
-  fstream jfile;
+  fstream jfile, jthis;
   vector<string> jpages;
   queue<string>jnotes;
   string guser, getj, line, status;
-  wchar_t button;
+  wchar_t button, ibutton;
   int rtsys;
   tm* day = setDmy();
   
@@ -131,7 +138,7 @@ int main(){
   }
   jfile.close();
   jfile.open(FILE, ios::in);
-  jfile >> guser; //Getting reference inside journeyquery
+  jfile >> guser; //Getting first line to check .eof()
   
   if(!jfile.eof()){
     jfile.close();
@@ -139,18 +146,11 @@ int main(){
     while(getline(jfile, line)){
       jpages.push_back(line);
     }
- 
-    newPage(&jpages, day);
-    //string dd = "7224";
-    int dt[3] = {day->tm_mday, day->tm_mon+1, day->tm_year-100};
-      cout << dayformarter(dt) << "\n";
-  
   }
   else{
     status="Write your first note";
   }
   
-  WAIT;
   /*****************************************************************END*/
   
   do{
@@ -164,15 +164,28 @@ int main(){
     button = getwchar();
     STTY_OFF;
     
-    switch(button){   // enter 10 | + 43 | - 45 | x 120 
+    switch(button){   // enter 10 | + 43 | - 45 | x 120 | *42
       case 43:
-            //newPage();
+            //Finish this part!
+            newPage(&jpages, day);
+            jthis.open(jpages.back(), ios::out | ios::app);
+            string linen;
+            /*
           do{
-            CLEAR; // | + save | - discart changes
-            printVivid("++++++++++++ Create your first Journey ++++++++++++", Blue);
-            cout << "_";
-          
-          }while(true);
+ 
+            CLEAR; // | / 47
+            static string xx;
+            cliOpen("Write", Purple);
+            cout << xx;
+            
+            if(ibutton == 43){
+              getline(cin, guser);
+              jthis << guser << "\n";
+              xx = xx+guser;
+            }
+            cliClose("Edit/View [+] | Save/Exit [/] | Discart/Exit [*]", &ibutton);
+            
+          }while(linen!="*");*/
     }
     
   }while(true);
@@ -186,12 +199,23 @@ void listPages(vector<string>qlist){
 }
 
 bool checkPath(const string& path, char flag){
-  string str = (flag=='p') ? "find "+path+" 2> /dev/null" : "find -P "+path;
+  string str = (flag=='p') ? "find "+path+" 2> /dev/null" : "find -P "+path+" > /dev/null";
   return (system(str.c_str()) == 0) ? true : false;
 }
 //Call checkPath() to check if it exists before continue to check permission executed. ?
 bool checkPermission(const string& file){
   //if(checkPath(file))
-  string str = "[ -r "+file+" ] && [ -w "+file+" ] && echo 0";
+  string str = "[ -r "+file+" ] && [ -w "+file+" ] && echo 0 > /dev/null";
   return (system(str.c_str()) == 0) ? true : false;
+}
+void cliOpen(string status, Colors color){
+  cout << linkColor("++++++++++++ WELCOME TO THE JOURNEY APP ++++++++++++\n", color);
+  cout << linkColor("Mode: ", Red) << status << "\n\n";
+}
+void cliClose(string cmdbar, wchar_t* bt){
+  cout << "\n\n\n\n\n";
+  cout << linkColor(cmdbar.c_str(), Red) << "\n";
+  STTY_ON;
+  *bt = getwchar();
+  STTY_OFF;
 }

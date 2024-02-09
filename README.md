@@ -7,6 +7,14 @@ Making a jouney app to practice external files
 # TO-DO
 
 * Implement [Write Journey Page] feature 
+  #Use vector or handle directly within files managment?
 * Implement [Read Journey Page] feature
 * Implement [Delete Journey Page] feature
- 
+
+
+# BUGS REPORTED
+# it will be nedded set a limit to create newJourneys, limitating 1 by day!
+
+# EXTRAS!
+
+* LOG implemeted in Termux.h to help with debug
