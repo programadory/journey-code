@@ -6,16 +6,12 @@ Making a jouney app to practice external files
 * 141/174 newJourney() algorithm for calculating missing days was solved finaly!
 # TO-DO
 
-* Implement [Write Journey Page] feature 
-  #Use vector or handle directly within files managment?
-* Implement [Read Journey Page] feature
-* Implement [Delete Journey Page] feature
-
++ Texteditor.h implemented to handle with journeys edition. see programadory/text-editor.git
 
 # BUGS REPORTED
-# it will be nedded set a limit to create newJourneys, limitating 1 by day!
+# it will be nedded set a limit to create newJourneys, limitating 1 by day! (pending)
 # Memory leaks within stdout, it's caching the buffer. (colors.h scape bug probably);
 
 # EXTRAS!
 
-* LOG implemeted in Termux.h to help with debug
++ LOG implemeted in Termux.h to help with debug
