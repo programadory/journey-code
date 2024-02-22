@@ -14,6 +14,7 @@ Making a jouney app to practice external files
 
 # BUGS REPORTED
 # it will be nedded set a limit to create newJourneys, limitating 1 by day!
+# Memory leaks within stdout, it's caching the buffer. (colors.h scape bug probably);
 
 # EXTRAS!
 

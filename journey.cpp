@@ -7,15 +7,15 @@
 #include <chrono>
 #include "/data/data/com.termux/files/home/headers/termux.h"
 #include "/data/data/com.termux/files/home/headers/colors.h"
+#include "/data/data/com.termux/files/home/headers/texteditor.h"
 
 using namespace std;
 
 /*
 Create a journey that are splited by pages. 
 There's a file that stores page's keywords based on DDMMYY.
-Each time user log in it generates the pages have gone, miss out
+Each time user login it generates the pages have gone, miss out
 formart [PAGE1 - DDMMYY], also generates a new one if uses chose [w] option to create a new Journey_day;
-
 */
 
 void listPages(vector<string>);
@@ -37,48 +37,70 @@ string dayformarter(int* dmy){
   return dfs;
 }
 
-void newPage(vector<string>* jpage, tm* today){
-
-  string stream = jpage->back();
-  stream[2] = '\0'; //Delimite a new finish to be treated for stoi()
-  int cmpday[3]={ today->tm_mday, stoi(stream) };
-  cmpday[2]=cmpday[0]-cmpday[1]; //getting missing days
-  LOGQ(stream);
-  LOGQ(to_string(cmpday[1]));
+string newPage(vector<string>* jpage, tm* today){
   
-  int daynow[3] = {today->tm_mday, today->tm_mon+1, today->tm_year-100};
-  int dayc=jpage->size();
-  LOGQ(to_string(dayc));
-  
-  /*1- if the day matches, pass
-  * 2- if doesn't match for 1 day longer, pass 
-  * 3- if doesnt't match for 2 days or longer, NO 
-  */
-  //When theres days missing out
-  if(cmpday[2] > 1){
-    //check for missing days 
-    while(++cmpday[1]<=cmpday[0]){
-      daynow[0]=cmpday[1]; //increasing days
-      stream  = dayformarter(daynow); //Converting to dd/mm/yy formart
-      stream = stream+" - page"+to_string(++dayc); //formarting again before push
-      jpage->push_back(stream); //pushing back to collection
-      //printf("DATE: %s\n", stream.c_str());
-      LOGQ(stream);
-    }
-  }//when its a new journey day
-  else{ //Saving memory func call
-    stream  = dayformarter(daynow);
-    stream = stream+" - page"+to_string(++dayc); 
-    jpage->push_back(stream);
+  try{ 
+    
+    cout << jpage->at(0); //Catching empty exception
+    string stream = jpage->back();
+    stream[2] = '\0'; //Delimite a new finish to be treated for stoi()
+    int cmpday[3]={ today->tm_mday, stoi(stream) };
+    cmpday[2]=cmpday[0]-cmpday[1]; //getting missing days
     LOGQ(stream);
-    //printf("DATE: %s\n", stream.c_str());
+    LOGQ(to_string(cmpday[1]));
+    
+    int daynow[3] = {today->tm_mday, today->tm_mon+1, today->tm_year-100};
+    int dayc=jpage->size();
+    LOGQ(to_string(dayc));
+  
+    /*1- if the day matches, pass
+    * 2- if doesn't match for 1 day longer, pass 
+    * 3- if doesnt't match for 2 days or longer, NO 
+    */
+    //When there's days missing out
+    if(cmpday[2] > 1){
+      //check for missing days 
+      while(++cmpday[1]<=cmpday[0]){
+        daynow[0]=cmpday[1]; //increasing days
+        stream  = dayformarter(daynow); //Converting to dd/mm/yy formart
+        stream = stream+" - page"+to_string(++dayc); //formarting again before push
+        jpage->push_back(stream); //pushing back to collection
+        //printf("DATE: %s\n", stream.c_str());
+        LOGQ(stream);
+      }
+    }//when its a new journey day
+    else{ //Saving memory func call
+      stream  = dayformarter(daynow);
+      stream = stream+" - page"+to_string(++dayc); 
+      jpage->push_back(stream);
+      LOGQ(stream);
+      //printf("DATE: %s\n", stream.c_str());
+    }
+   //ALGORITHM IS WORKING FINE!
+    stream = "page"+to_string(dayc); //Reformat to create the real journey page.
+    return stream;
   }
- //ALGORITHM IS WORKING FINE!
- exitlogQ();
+  catch(const out_of_range& jexcept){ //Threating a jpages empty situation
+    
+    LOGQ(jexcept.what());
+    int cmpday_except[3]={today->tm_mday, today->tm_mon+1, today->tm_year-100};
+    string stream_except = dayformarter(cmpday_except);
+    stream_except = stream_except+" - page1";
+    jpage->push_back(stream_except);
+    
+    stream_except = "page1"; 
+    return stream_except;
+  }
+  
 }
 
-void cliOpen(string, Colors);
-void cliClose(string, wchar_t*);
+string timenow(tm* timelocal_){
+  char buffer[7];
+  strftime(buffer, 7, "%h%m%s", timelocal_);
+  return string(buffer);
+}
+
+void cli(string, Colors, Colors, string, wchar_t*, string);
 
 int main(){
   
@@ -98,8 +120,8 @@ int main(){
   queue<string>jnotes;
   string guser, getj, line, status;
   wchar_t button, ibutton;
-  int rtsys;
   tm* day = setDmy();
+  int rtsys;
   
   try{
     
@@ -112,13 +134,12 @@ int main(){
       if(!checkPath(PATH))
         system("mkdir journeypath > /dev/null");
         
-      jfile.close();
       jfile.open(FILE, ios::out);
       ploopstream("No config file founded!", Red,1);
       ploopstream("Setting journeyquery file...", Red, 1);
       ploopstream("Please wait...", Red, 1);
-      jfile.close();
     }
+    jfile.close(); //Closing file general conditions.
   }
   catch(const char* jexcept){
     
@@ -136,9 +157,10 @@ int main(){
     }
     //exit(EXIT_FAILURE);
   }
-  jfile.close();
+  
   jfile.open(FILE, ios::in);
   jfile >> guser; //Getting first line to check .eof()
+  LOG &guser;
   
   if(!jfile.eof()){
     jfile.close();
@@ -148,10 +170,13 @@ int main(){
     }
   }
   else{
-    status="Write your first note";
+    status="Write u first note";
   }
   
   /*****************************************************************END*/
+  
+  Editor jeditor = Editor();
+  char letter;
   
   do{
     
@@ -164,32 +189,57 @@ int main(){
     button = getwchar();
     STTY_OFF;
     
-    switch(button){   // enter 10 | + 43 | - 45 | x 120 | *42
+    switch(button) // enter 10 | + 43 | - 45 | x 120 | *42 | / 47
+    {  
       case 43:
-            //Finish this part!
-            newPage(&jpages, day);
-            jthis.open(jpages.back(), ios::out | ios::app);
-            string linen;
-            /*
-          do{
- 
-            CLEAR; // | / 47
-            static string xx;
-            cliOpen("Write", Purple);
-            cout << xx;
-            
-            if(ibutton == 43){
-              getline(cin, guser);
-              jthis << guser << "\n";
-              xx = xx+guser;
-            }
-            cliClose("Edit/View [+] | Save/Exit [/] | Discart/Exit [*]", &ibutton);
-            
-          }while(linen!="*");*/
-    }
+            guser = newPage(&jpages, day);
+            jthis.open(guser, ios::out | ios::app);
+            status="Editing "+guser;
+             // IT DIDN'T WORK KKKKK A LOT OF PROBLEM TO SOLVE IN STRUCT
+             cout << endl;
+            while(ibutton!=96){ // button = ` - 96
     
-  }while(true);
+              system("clear");
+             
+              cout << "+++++++++++++++++++++++ WELCOME TO THE JOURNEY APP +++++++++++++++++++++++";
+              cout << "\nMode: " << status << "\n\n" << jeditor.stream;
+              cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n [/] Left | [*] Right | [-] Del | [`] Exit\n";
+              STTY_ON;
+              letter = ibutton = getwchar();
+              STTY_OFF;
+              
+              switch(ibutton)
+              {
+                case 96: // button = ` exit
+                      jeditor.stream[jeditor.cursor_it]='\0';
+                      break;
+                case 47: // button = / left
+                      if(jeditor.cursor_it>0)
+                        jeditor.cursorLeft(jeditor.stream, jeditor.cursor, &jeditor.cursor_it);
+                      break;
+                case 42: // button = * right
+                      if(jeditor.cursor_it<jeditor.size)
+                        jeditor.cursorRight(jeditor.stream, jeditor.cursor, &jeditor.cursor_it);
+                      break;
+                case 45: // button = - delete
+                      if(jeditor.cursor_it>0){
+                        jeditor.delStream(jeditor.stream, jeditor.cursor, &jeditor.cursor_it, jeditor.size);
+                        --jeditor.size;
+                      }
+                      break;
+                default:
+                      if(jeditor.cursor_it <= jeditor.size)
+                        jeditor.editStream(jeditor.stream, jeditor.cursor, letter, &jeditor.cursor_it, jeditor.size);
+                      ////
+                      ++jeditor.size;
+              }
+             
+            }
+            break;
+    }
  
+  }while(true);
+  
   return 0;
 }
 
@@ -208,14 +258,14 @@ bool checkPermission(const string& file){
   string str = "[ -r "+file+" ] && [ -w "+file+" ] && echo 0 > /dev/null";
   return (system(str.c_str()) == 0) ? true : false;
 }
-void cliOpen(string status, Colors color){
-  cout << linkColor("++++++++++++ WELCOME TO THE JOURNEY APP ++++++++++++\n", color);
-  cout << linkColor("Mode: ", Red) << status << "\n\n";
-}
-void cliClose(string cmdbar, wchar_t* bt){
-  cout << "\n\n\n\n\n";
-  cout << linkColor(cmdbar.c_str(), Red) << "\n";
-  STTY_ON;
-  *bt = getwchar();
-  STTY_OFF;
+
+void cli(string status, Colors begin_color, Colors end_color, string comand_bar, wchar_t* bt, string data_stream){
+    
+    cout << linkColor("++++++++++++ WELCOME TO THE JOURNEY APP ++++++++++++", begin_color);
+    cout << "\nMode: " << status << "\n\n" << data_stream;
+    cout << "\n\n\n\n\n";
+    cout << linkColor(comand_bar.c_str(), end_color) << "\n\n";
+    STTY_ON;
+    *bt = getwchar();
+    STTY_OFF;
 }
