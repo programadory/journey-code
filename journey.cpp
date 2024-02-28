@@ -5,6 +5,7 @@
 #include <queue>
 #include <ctime>
 #include <chrono>
+/* C libraries */
 #include "/data/data/com.termux/files/home/headers/termux.h"
 #include "/data/data/com.termux/files/home/headers/colors.h"
 #include "/data/data/com.termux/files/home/headers/texteditor.h"
@@ -39,16 +40,20 @@ string dayformarter(int* dmy){
 
 string newPage(vector<string>* jpage, tm* today){
   
+  int cmpday[3];
+  string stream;
+  
   try{ 
     
     cout << jpage->at(0); //Catching empty exception
-    string stream = jpage->back();
+    stream = jpage->back();
     stream[2] = '\0'; //Delimite a new finish to be treated for stoi()
-    int cmpday[3]={ today->tm_mday, stoi(stream) };
+    //////
+    cmpday[0]=today->tm_mday;
+    cmpday[1]=stoi(stream);
     cmpday[2]=cmpday[0]-cmpday[1]; //getting missing days
-    LOGQ(stream);
-    LOGQ(to_string(cmpday[1]));
-    
+    // LOGQ(stream);
+    // LOGQ(to_string(cmpday[1]));
     int daynow[3] = {today->tm_mday, today->tm_mon+1, today->tm_year-100};
     int dayc=jpage->size();
     LOGQ(to_string(dayc));
@@ -81,17 +86,16 @@ string newPage(vector<string>* jpage, tm* today){
     return stream;
   }
   catch(const out_of_range& jexcept){ //Threating a jpages empty situation
-    
-    LOGQ(jexcept.what());
-    int cmpday_except[3]={today->tm_mday, today->tm_mon+1, today->tm_year-100};
-    string stream_except = dayformarter(cmpday_except);
-    stream_except = stream_except+" - page1";
-    jpage->push_back(stream_except);
-    
-    stream_except = "page1"; 
-    return stream_except;
-  }
   
+    cmpday[0]=today->tm_mday;
+    cmpday[1]=today->tm_mon+1;
+    cmpday[2]=today->tm_year-100;
+    stream = dayformarter(cmpday);
+    stream = stream+" - page1";
+    jpage->push_back(stream);
+    stream = "page1"; 
+    return stream;
+  }
 }
 
 string timenow(tm* timelocal_){
@@ -108,7 +112,7 @@ int main(){
   * 1- Checkout directory exists
     2- Checkout journeyquery file exists
     3- Check out file R/W permissions.
-    3- if those aren't yet, set the config file (journeyquery);
+    3- if there's no file, set the config file (journeyquery);
     4- Read file, copy files to vector<string> then if there's pages, fill all the empty range 
     of note-days within empty pages starting from last note registered.
   */
@@ -168,6 +172,7 @@ int main(){
     while(getline(jfile, line)){
       jpages.push_back(line);
     }
+    jfile.close();
   }
   else{
     status="Write u first note";
@@ -177,17 +182,21 @@ int main(){
   
   Editor jeditor = Editor();
   char letter;
+  string setbar = "\n\n\n\n\n\n\n\n\n\n\n\n\n[`] exit | [/] left | [*] right | [-] delete\n";
   
   do{
     
     CLEAR;
-    cout << linkColor("++++++++++++ WELCOME TO THE JOURNEY APP ++++++++++++\n", Blue);
-    cout << linkColor("Mode: ", Red) << status << "\n\n";
+    cout << linkColor("++++++++++++ WELCOME TO THE JOURNEY APP ++++++++++++\n", SZ_DEFAULT, Blue);
+    cout << linkColor("Mode: ", SZ_DEFAULT, Red) << status << "\n\n";
     listPages(jpages);
-    cout << linkColor("\n\n\n\n\nNew Journey[+] | See [enter] | Delete [-] | Exit [x]", Red) << "\n";
+    cout << linkColor("\n\n\n\n\nNew Journey[+] | See [enter] | Delete [-] | Exit [x]", SZ_DEFAULT, Red) << "\n";
     STTY_ON;
     button = getwchar();
     STTY_OFF;
+    
+    if(button==120)
+      break;
     
     switch(button) // enter 10 | + 43 | - 45 | x 120 | *42 | / 47
     {  
@@ -195,24 +204,16 @@ int main(){
             guser = newPage(&jpages, day);
             jthis.open(guser, ios::out | ios::app);
             status="Editing "+guser;
-             // IT DIDN'T WORK KKKKK A LOT OF PROBLEM TO SOLVE IN STRUCT
-             cout << endl;
+            
             while(ibutton!=96){ // button = ` - 96
     
               system("clear");
-             
-              cout << "+++++++++++++++++++++++ WELCOME TO THE JOURNEY APP +++++++++++++++++++++++";
-              cout << "\nMode: " << status << "\n\n" << jeditor.stream;
-              cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n [/] Left | [*] Right | [-] Del | [`] Exit\n";
-              STTY_ON;
-              letter = ibutton = getwchar();
-              STTY_OFF;
+              //Use threads here to make the CLI static!
+              cli(status, Red, Red, setbar, &ibutton, jeditor.stream);
+              letter = ibutton;
               
               switch(ibutton)
               {
-                case 96: // button = ` exit
-                      jeditor.stream[jeditor.cursor_it]='\0';
-                      break;
                 case 47: // button = / left
                       if(jeditor.cursor_it>0)
                         jeditor.cursorLeft(jeditor.stream, jeditor.cursor, &jeditor.cursor_it);
@@ -223,29 +224,36 @@ int main(){
                       break;
                 case 45: // button = - delete
                       if(jeditor.cursor_it>0){
-                        jeditor.delStream(jeditor.stream, jeditor.cursor, &jeditor.cursor_it, jeditor.size);
+                        jeditor.delStream(jeditor.stream, jeditor.cursor, &jeditor.cursor_it, jeditor.size, true);
                         --jeditor.size;
                       }
                       break;
+                case 96: // button = ` exit                                     //false = delete cursor.
+                      jeditor.delStream(jeditor.stream, jeditor.cursor, &jeditor.cursor_it, jeditor.size, false);
+                      break;
+                      
                 default:
                       if(jeditor.cursor_it <= jeditor.size)
                         jeditor.editStream(jeditor.stream, jeditor.cursor, letter, &jeditor.cursor_it, jeditor.size);
                       ////
                       ++jeditor.size;
+
               }
-             
             }
             break;
+            
     }
  
   }while(true);
+  
+  cout << "OUTPUT:\n\n" << jeditor.stream << "\n---------------------------------------------\n";
   
   return 0;
 }
 
 void listPages(vector<string>qlist){
   for(auto it: qlist)
-    cout << linkColor(it.c_str(), Fuchsia) << "\n";
+    cout << it << "\n";
 }
 
 bool checkPath(const string& path, char flag){
@@ -261,11 +269,11 @@ bool checkPermission(const string& file){
 
 void cli(string status, Colors begin_color, Colors end_color, string comand_bar, wchar_t* bt, string data_stream){
     
-    cout << linkColor("++++++++++++ WELCOME TO THE JOURNEY APP ++++++++++++", begin_color);
-    cout << "\nMode: " << status << "\n\n" << data_stream;
-    cout << "\n\n\n\n\n";
-    cout << linkColor(comand_bar.c_str(), end_color) << "\n\n";
+    cout << linkColor("++++++++++++ WELCOME TO THE JOURNEY APP ++++++++++++\n", SZ_DEFAULT, begin_color);
+    cout << linkColor("Mode: ", SZ_DEFAULT, Red) << status << "\n\n";
+    cout << data_stream;
+    cout << linkColor(comand_bar.c_str(), comand_bar.size(), end_color);
     STTY_ON;
-    *bt = getwchar();
+    *bt = getchar();
     STTY_OFF;
 }
