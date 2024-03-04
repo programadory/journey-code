@@ -8,12 +8,12 @@
 *.obj
 
 # Executables
-*.exe
 *.out
 *.app
 
 #Files
 
-*test
-*date
-*log
+.journey.cpp.swp
+logs
+.others/
+journeypath/

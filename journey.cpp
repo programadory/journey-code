@@ -118,7 +118,7 @@ int main(){
   
   fstream jfile, jthis;
   vector<string> jpages;
-  string guser, lastpage, line, status, text;
+  string guser, lastpage, line, text, status;
   wchar_t button, ibutton;
   tm* day = setDmy();
   int dmy[3]={day->tm_mday, day->tm_mon+1, day->tm_year-100};
@@ -367,15 +367,15 @@ int main(){
             break;
             
       case 45:
+            
             cout << linkColor("Search: ",8, Red);
             getline(cin, guser);
-            status = "Delete";
             string delpage;
             
             jfile.open(FILE, ios::out);
             for(auto it: jpages){
               auto fpage = it.find(guser);
-              if(fpage != std::string::npos){ 
+              if(fpage != std::string::npos && guser != "\0"){ 
                 //Deleting from file /pages/
                 size_t begin = it.rfind(" ", fpage)+1, end = it.find(" ", fpage);
                 status = delpage = it.substr(begin, end-begin);
