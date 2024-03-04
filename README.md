@@ -23,4 +23,4 @@ Making a jouney app to practice external files
 # EXTRAS!
 
 + LOG implemeted in Termux.h to help with debug [DONE]
-+ Small improvements for LOG in Termux.h and bug fixes..
++ Small improvements for LOG in Termux.h and bug fixes.

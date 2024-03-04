@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 #include <stack>
 #include <ctime>
@@ -45,7 +46,6 @@ string newPage(vector<string>* jpage, tm* today){
     cmpday[0]=today->tm_mday;
     cmpday[1]=stoi(stream);
     cmpday[2]=cmpday[0]-cmpday[1]; //getting missing days
-    log_.logup(stream);
   
     int daynow[3] = {today->tm_mday, today->tm_mon+1, today->tm_year-100};
     int index=jpage->size();
@@ -63,14 +63,12 @@ string newPage(vector<string>* jpage, tm* today){
         stream = stream+" - page"+to_string(++index); //formarting again before push
         jpage->push_back(stream); //pushing back to collection
         //printf("DATE: %s\n", stream.c_str());
-        log_.logup(stream);
       }
     }//when its a new journey day
     else{ //Saving memory func call
       stream  = dayformarter(daynow);
       stream = stream+" - page"+to_string(++index); 
       jpage->push_back(stream);
-      log_.logup(stream);
     }
    //ALGORITHM IS WORKING FINE!
     stream = "page"+to_string(index); //Reformat to create the real journey page.
@@ -120,7 +118,7 @@ int main(){
   
   fstream jfile, jthis;
   vector<string> jpages;
-  string guser, lastpage, line, status;
+  string guser, lastpage, line, status, text;
   wchar_t button, ibutton;
   tm* day = setDmy();
   int dmy[3]={day->tm_mday, day->tm_mon+1, day->tm_year-100};
@@ -187,7 +185,7 @@ int main(){
     cout << linkColor("++++++++++++ WELCOME TO THE JOURNEY APP ++++++++++++\n", SZ_DEFAULT, Blue);
     cout << linkColor("Mode: ", SZ_DEFAULT, Red) << status << "\n\n";
     listPages(jpages);
-    cout << linkColor("\n\n\n\n\nNew Journey[+] | See [enter] | Delete [-] | Exit [x]", SZ_DEFAULT, Red) << "\n";
+    cout << linkColor("\n\n\n\n\nNew Journey[+] | See/Edit [enter] | Delete [-] | Exit [x]", SZ_DEFAULT, Red) << "\n";
     STTY_ON;
     button = getwchar();
     STTY_OFF;
@@ -199,7 +197,7 @@ int main(){
     {  
       case 43: /* Basically it has to check if the user has alredy made a journal today*/
             // Check by day if the user alredy wrote a journal page!
-           
+           {
             if(!jpages.empty() && is_pagelimit(jpages.back(), dayformarter(dmy))){
                 status = linkColor(message.c_str(), message.size(), Fuchsia);
                 break;
@@ -210,9 +208,8 @@ int main(){
             status="Editing "+guser;
             lastpage=jpages.back();
             
-            while(ibutton!=96){ // button = ` - 96
+            while(true){ // button = ` - 96
     
-              system("clear");
               //Use threads here to make the CLI static!
               cli(status, Red, Red, setbar, &ibutton, jeditor->stream);
               letter = ibutton;
@@ -237,7 +234,7 @@ int main(){
                       jeditor->delStream(jeditor->stream, jeditor->cursor, &jeditor->cursor_it, jeditor->size, false);
                       
                       guser = PPATH+guser;
-                      jthis.open(guser, ios::out | ios::app); //pages block
+                      jthis.open(guser, ios::out); //pages block
                       jthis << jeditor->stream << endl;
                       jthis.close();
                       
@@ -249,6 +246,11 @@ int main(){
                       status="Saved!";
                       status=linkColor(status.c_str(), status.size(), Fuchsia);
                       break;
+                      
+                case 126: // ~ exit & discart
+                      jpages.pop_back();
+                      status = guser+" discarted!";
+                      break;
                 
                 default:
                       if(jeditor->cursor_it <= jeditor->size)
@@ -257,10 +259,141 @@ int main(){
                       ++jeditor->size;
 
               }
+              if(ibutton==96 || ibutton==126) break;
             }
             ibutton='\0';
             delete jeditor;
             break;
+          }
+      
+      case 10: // Enter - Read a journal page
+            if(jpages.empty()){
+              status="No pages created!";
+              break;
+            }
+            
+            status = linkColor("View",3, Red);
+            cout << linkColor("Search: ",8,Red);
+            getline(cin, guser);
+            
+            for(auto it: jpages){
+              
+              auto fpage = it.find(guser);
+              if(fpage != std::string::npos){
+                size_t begin = it.rfind(" ", fpage)+1, end = it.find(" ", fpage);
+                guser = line = it.substr(begin, end-begin);
+                break;
+              }
+              else{
+                line = "\0";
+              }
+            }
+            
+            if(guser != line){
+              status = guser+" not found!";
+              break;
+            } 
+            
+            text = "\0";
+    
+            jfile.open(PPATH+line, ios::in);
+            while(getline(jfile, line)){
+              text += line+"\n";
+            }
+            jfile.close();
+           
+            cli(status, Green, Green, "\n\n\n\n\n\n\n\n\n\n\n\n\n[+] Edit | [Enter] Exit\n", &ibutton, text);
+              
+            if(ibutton==43){
+              Editor* jeditor = new Editor();
+              jeditor->loadStream(text.c_str());
+           
+              while(true){
+                
+                cli(status, Red, Red, setbar, &ibutton, jeditor->stream);
+                letter = ibutton;
+                
+                switch(ibutton)
+                {
+                  case 47: // button = / left
+                        if(jeditor->cursor_it>0)
+                          jeditor->cursorLeft(jeditor->stream, jeditor->cursor, &jeditor->cursor_it);
+                        break;
+                  case 42: // button = * right
+                        if(jeditor->cursor_it<jeditor->size)
+                          jeditor->cursorRight(jeditor->stream, jeditor->cursor, &jeditor->cursor_it);
+                        break;
+                  case 45: // button = - delete
+                        if(jeditor->cursor_it>0){
+                          jeditor->delStream(jeditor->stream, jeditor->cursor, &jeditor->cursor_it, jeditor->size, true);
+                          --jeditor->size;
+                        }
+                        break;
+                  case 96: // button = ` exit & save - 126                                 
+                        jeditor->delStream(jeditor->stream, jeditor->cursor, &jeditor->cursor_it, jeditor->size, false);
+                        
+                        guser = PPATH+guser;
+                        jthis.open(guser, ios::out); //pages block
+                        jthis << jeditor->stream << endl;
+                        jthis.close();
+                        
+                        jfile.open(FILE, ios::out); //journeyquery block
+                        for(auto it: jpages)
+                           jfile << it << endl;
+                        jfile.close();
+                        //
+                        status="Edited!";
+                        status=linkColor(status.c_str(), status.size(), Fuchsia);
+                        break;
+                        
+                  case 126: // ~ exit & discart
+                        jpages.pop_back();
+                        status = guser+" discarted!";
+                        break;
+                  
+                  default:
+                        if(jeditor->cursor_it <= jeditor->size)
+                          jeditor->editStream(jeditor->stream, jeditor->cursor, letter, &jeditor->cursor_it, jeditor->size);
+                        //////
+                        ++jeditor->size;
+  
+                }
+              if(ibutton==96 || ibutton==126) break;
+              }
+            ibutton='\0';
+            delete jeditor;
+            break;
+            }
+            break;
+            
+      case 45:
+            cout << linkColor("Search: ",8, Red);
+            getline(cin, guser);
+            status = "Delete";
+            string delpage;
+            
+            jfile.open(FILE, ios::out);
+            for(auto it: jpages){
+              auto fpage = it.find(guser);
+              if(fpage != std::string::npos){ 
+                //Deleting from file /pages/
+                size_t begin = it.rfind(" ", fpage)+1, end = it.find(" ", fpage);
+                status = delpage = it.substr(begin, end-begin);
+                delpage  = "rm journeypath/pages/"+delpage+" > /dev/null";
+                system(delpage.c_str());
+                //Update list and removing from journeyquery
+                jpages.erase(remove(jpages.begin(), jpages.end(), it));
+                status += " deleted!";
+                break;
+              }
+              else{
+                jfile << it << endl;
+                status = "Not found!";
+              }
+            }
+            jfile.close();
+            break;
+       
     }
  
   }while(true);
@@ -288,6 +421,7 @@ bool checkPermission(const string& file){
 
 void cli(string status, Colors begin_color, Colors end_color, string comand_bar, wchar_t* button, string data_stream){
     
+    CLEAR;
     cout << linkColor("++++++++++++ WELCOME TO THE JOURNEY APP ++++++++++++\n", SZ_DEFAULT, begin_color);
     cout << linkColor("Mode: ", SZ_DEFAULT, Red) << status << "\n\n";
     cout << data_stream;
